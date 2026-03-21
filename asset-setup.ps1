@@ -192,9 +192,47 @@ do {
 # SAVE LOCAL (FIXED PATH)
 # ==============================
 
-    Write-Host "Saved locally" -ForegroundColor Green
+# базовый путь Documents
+$basePath = [Environment]::GetFolderPath("MyDocuments")
 
-    # GOOGLE Company Database
+# папка
+$folderPath = Join-Path $basePath "comp_registration"
+
+# создать папку если нет
+if (-not (Test-Path $folderPath)) {
+    New-Item -Path $folderPath -ItemType Directory | Out-Null
+}
+
+# имя файла
+$safeName = "$asset - $owner" -replace '[\\/:*?""<>|]', '_'
+
+# ПОЛНЫЙ путь к файлу
+$filePath = Join-Path $folderPath "$safeName.csv"
+
+# данные
+$data = [PSCustomObject]@{
+    Date     = (Get-Date)
+    AssetID  = $asset
+    Owner    = $owner
+    Model    = $model
+    Serial   = $serial
+    City     = $city
+    Hostname = $hostname
+}
+
+# сохранение
+$data | Export-Csv -Path $filePath -NoTypeInformation -Encoding UTF8
+
+Write-Host "Saved locally: $filePath" -ForegroundColor Green
+
+# открыть папку
+if (Test-Path $folderPath) {
+    Start-Process explorer.exe $folderPath
+}
+
+#====================================
+#       GOOGLE Company Database
+#====================================
     try {
         $body = @{
             asset    = $asset
