@@ -22,6 +22,23 @@ $regPath = "HKLM:\SOFTWARE\Company\Asset"
 $url = "https://script.google.com/macros/s/AKfycbxTi07kyNcvCLWN9TrjCVO-a0xcwC3NRhRy2RuSL0pxTOAh2o-ChuUdQvv0EZCincieQg/exec"
 
 # ==============================
+# FUNCTION: REQUIRED INPUT
+# ==============================
+function Read-Required($prompt) {
+
+    do {
+        $value = Read-Host $prompt
+
+        if ([string]::IsNullOrWhiteSpace($value)) {
+            Write-Host "Value cannot be empty. Please enter a valid value." -ForegroundColor Yellow
+        }
+
+    } until (-not [string]::IsNullOrWhiteSpace($value))
+
+    return $value
+}
+
+# ==============================
 # FUNCTION: STATUS
 # ==============================
 function Show-Status {
@@ -115,7 +132,7 @@ do {
     $hostname = $asset
 
 # === OWNER ===
-    $owner = Read-Host "Enter owner (lastname)"
+    $owner = Read-Required "Enter owner (lastname)"
 
 # === MODEL ===
     $autoModel = (Get-CimInstance Win32_ComputerSystemProduct).Name
@@ -125,7 +142,7 @@ do {
     if ($confirmModel -eq "Y") {
         $model = $autoModel
     } else {
-        $model = Read-Host "Enter model manually"
+        $model = Read-Required "Enter model manually"
     }
 
 # === SERIAL ===
@@ -136,7 +153,7 @@ do {
     if ($confirmSerial -eq "Y") {
         $serial = $autoSerial
     } else {
-        $serial = Read-Host "Enter serial manually"
+        $serial = Read-Required "Enter model manually"
     }
 
 # === DESCRIPTION ===
