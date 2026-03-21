@@ -9,4 +9,4 @@ if %errorLevel% neq 0 (
 )
 
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0asset-setup.ps1"
-pause
+exit
