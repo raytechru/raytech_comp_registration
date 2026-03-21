@@ -188,19 +188,34 @@ do {
       -Name "srvcomment" `
       -Value $desc
 
-    # LOCAL SAVE
-    $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-    $filePath = Join-Path $scriptPath "$asset - $owner.csv"
+# ==============================
+# SAVE LOCAL (FIXED PATH)
+# ==============================
+    $basePath = [Environment]::GetFolderPath("MyDocuments")
+    $folderPath = Join-Path $basePath "comp_registration"
 
-    [PSCustomObject]@{
-        Date     = Get-Date
+    # создать папку если нет
+    if (-not (Test-Path $folderPath)) {
+        New-Item -Path $folderPath -ItemType Directory | Out-Null
+    }
+
+    # безопасное имя файла
+    $safeName = "$asset - $owner" -replace '[\\/:*?""<>|]', '_'
+    $filePath = Join-Path $folderPath "$safeName.csv"
+
+    $data = [PSCustomObject]@{
+        Date     = (Get-Date)
         AssetID  = $asset
         Owner    = $owner
         Model    = $model
         Serial   = $serial
         City     = $city
         Hostname = $hostname
-    } | Export-Csv -Path $filePath -NoTypeInformation -Encoding UTF8
+    }
+
+    $data | Export-Csv -Path $filePath -NoTypeInformation -Encoding UTF8
+
+    Write-Host "Saved locally: $filePath" -ForegroundColor Green
 
     Write-Host "Saved locally" -ForegroundColor Green
 
