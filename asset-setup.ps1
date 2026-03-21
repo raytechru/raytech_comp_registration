@@ -56,9 +56,29 @@ function Add-Device {
 
     Write-Host "=== PC Setup ===" -ForegroundColor Cyan
 
-# === TYPE + CITY ===
-    $type = (Read-Host "Enter type (NB/PC)").ToUpper()
-    $city = (Read-Host "Enter city code (EKB/MSK/VRN)").ToUpper()
+# ==============================
+# TYPE VALIDATION
+# ==============================
+do {
+    $type = (Read-Host "Enter type (NB/PC/NT)").ToUpper()
+
+    if ($type -notin @("NB","PC","NT")) {
+        Write-Host "Invalid type. Allowed: NB (laptop), PC (desktop), NT (nettop)" -ForegroundColor Yellow
+    }
+
+} until ($type -in @("NB","PC","NT"))
+
+# ==============================
+# CITY VALIDATION
+# ==============================
+do {
+    $city = (Read-Host "Enter city code (3 letters, e.g. MSK)").ToUpper()
+
+    if ($city -notmatch '^[A-Z]{3}$') {
+        Write-Host "Invalid city code. Must be exactly 3 letters (e.g. MSK, VRN)" -ForegroundColor Yellow
+    }
+
+} until ($city -match '^[A-Z]{3}$')
 
 # === GET NUMBER FROM GOOGLE ===
     $nextNumber = $null
