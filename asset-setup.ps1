@@ -191,31 +191,6 @@ do {
 # ==============================
 # SAVE LOCAL (FIXED PATH)
 # ==============================
-    $basePath = [Environment]::GetFolderPath("MyDocuments")
-    $folderPath = Join-Path $basePath "comp_registration"
-
-    # создать папку если нет
-    if (-not (Test-Path $folderPath)) {
-        New-Item -Path $folderPath -ItemType Directory | Out-Null
-    }
-
-    # безопасное имя файла
-    $safeName = "$asset - $owner" -replace '[\\/:*?""<>|]', '_'
-    $filePath = Join-Path $folderPath "$safeName.csv"
-
-    $data = [PSCustomObject]@{
-        Date     = (Get-Date)
-        AssetID  = $asset
-        Owner    = $owner
-        Model    = $model
-        Serial   = $serial
-        City     = $city
-        Hostname = $hostname
-    }
-
-    $data | Export-Csv -Path $filePath -NoTypeInformation -Encoding UTF8
-
-    Write-Host "Saved locally: $filePath" -ForegroundColor Green
 
     Write-Host "Saved locally" -ForegroundColor Green
 
