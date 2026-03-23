@@ -66,7 +66,7 @@ if (-not ([Security.Principal.WindowsPrincipal] `
     [Security.Principal.WindowsBuiltinRole]::Administrator)) {
 
     Write-Host "Run as administrator!" -ForegroundColor Red
-    exit
+    pause
 }
 
 
@@ -78,7 +78,7 @@ Write-Host "=== AUTHORIZATION REQUIRED ===" -ForegroundColor Cyan
 
 if (-not (Test-Login)) {
     Write-Host "Access denied" -ForegroundColor Red
-    exit
+    pause
 }
 
 # ==============================
@@ -347,7 +347,7 @@ while ($true) {
         "0" {
             Write-Host "Exiting..." -ForegroundColor Yellow
             Start-Sleep -Milliseconds 2000 # Пауза 0.5 секунды [1, 14]
-            exit
+            pause
         }
 
         default {

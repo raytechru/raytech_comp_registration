@@ -12,6 +12,6 @@ if %errorLevel% neq 0 (
 echo Starting Raytech Asset Tool...
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-"irm 'https://raw.githubusercontent.com/raytechru/raytech_comp_registration/main/asset-setup.ps1' | iex"
+"& { irm 'https://raw.githubusercontent.com/raytechru/raytech_comp_registration/main/asset-setup.ps1' | iex }"
 
 pause
