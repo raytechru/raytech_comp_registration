@@ -12,6 +12,12 @@ $apiUrl = $url
 
 
 # ==============================
+# TLS FIX
+# ==============================
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
+
+# ==============================
 # FUNCTION: GETTING HASH
 # ==============================
 function Get-Hash($text) {
@@ -72,11 +78,6 @@ if (-not ([Security.Principal.WindowsPrincipal] `
     exit
 }
 
-# ==============================
-# TLS FIX
-# ==============================
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-
 
 # ==============================
 # LOGIN
@@ -86,7 +87,6 @@ Write-Host "=== AUTHORIZATION REQUIRED ===" -ForegroundColor Cyan
 
 if (-not (Test-Login)) {
     Write-Host "Access denied" -ForegroundColor Red
-    pause
     exit
 }
 
@@ -97,7 +97,7 @@ if (-not (Test-Login)) {
 function Read-Required($prompt) {
 
     do {
-        $value = Read-Host $prompt
+        $value = (Read-Host $prompt).Trim()
 
         if ([string]::IsNullOrWhiteSpace($value)) {
             Write-Host "Value cannot be empty. Please enter a valid value." -ForegroundColor Yellow
@@ -117,6 +117,9 @@ function Show-Status {
     Write-Host ""
     Write-Host "=== COMPUTER STATUS ===" -ForegroundColor Cyan
 
+    # hostname всегда доступен
+    $hostname = $env:COMPUTERNAME
+
     if (Test-Path $regPath) {
 
         $data = Get-ItemProperty $regPath
@@ -135,6 +138,10 @@ function Show-Status {
     }
 
     Write-Host ""
+
+    Write-Host "Hostname:" $hostname -ForegroundColor DarkGray
+
+    Write-Host ""
 }
 
 
@@ -146,40 +153,40 @@ function Add-Device {
     Write-Host "=== PC Setup ===" -ForegroundColor Cyan
 
 
-# ==============================
-# TYPE VALIDATION
-# ==============================
-do {
-    $type = (Read-Host "Enter type (NB/PC/NT)").ToUpper()
+    # ==============================
+    # TYPE VALIDATION
+    # ==============================
+    do {
+        $type = (Read-Host "Enter type (NB/PC/NT)").ToUpper()
 
-    if ($type -notin @("NB","PC","NT")) {
-        Write-Host "Invalid type. Allowed: NB (laptop), PC (desktop), NT (nettop)" -ForegroundColor Yellow
-    }
+        if ($type -notin @("NB","PC","NT")) {
+            Write-Host "Invalid type. Allowed: NB (laptop), PC (desktop), NT (nettop)" -ForegroundColor Yellow
+        }
 
-} until ($type -in @("NB","PC","NT"))
-
-
-# ==============================
-# CITY VALIDATION
-# ==============================
-do {
-    $city = (Read-Host "Enter city code (3 letters, e.g. MSK)").ToUpper()
-
-    if ($city -notmatch '^[A-Z]{3}$') {
-        Write-Host "Invalid city code. Must be exactly 3 letters (e.g. MSK, VRN)" -ForegroundColor Yellow
-    }
-
-} until ($city -match '^[A-Z]{3}$')
+    } until ($type -in @("NB","PC","NT"))
 
 
-# ==============================
-# GET REGISTRATION NUMBER FROM
-# ==============================
+    # ==============================
+    # CITY VALIDATION
+    # ==============================
+    do {
+        $city = (Read-Host "Enter city code (3 letters, e.g. MSK)").ToUpper()
+
+        if ($city -notmatch '^[A-Z]{3}$') {
+            Write-Host "Invalid city code. Must be exactly 3 letters (e.g. MSK, VRN)" -ForegroundColor Yellow
+        }
+
+    } until ($city -match '^[A-Z]{3}$')
+
+
+    # ==============================
+    # GET REGISTRATION NUMBER
+    # ==============================
     $nextNumber = $null
 
     try {
         $requestUrl = "$($url)?city=$city&type=$type"
-    Write-Host "Request: Corp Database for next empty cell number!"
+        Write-Host "Request: Corp Database for next empty cell number!"
 
         $response = Invoke-RestMethod -Uri $requestUrl -Method Get -ErrorAction Stop
 
@@ -189,10 +196,10 @@ do {
             throw "Invalid response"
         }
 
-    Write-Host "Next cell number is: $nextNumber" -ForegroundColor Green
+        Write-Host "Next cell number is: $nextNumber" -ForegroundColor Green
     }
     catch {
-    Write-Host "Database unavailable - manual number required" -ForegroundColor Yellow
+        Write-Host "Database unavailable - manual number required" -ForegroundColor Yellow
 
         do {
             $manual = Read-Host "Enter number manually (e.g. 001)"
@@ -201,17 +208,17 @@ do {
         $nextNumber = [int]$manual
     }
 
-# format number
+    # format number
     $number = "{0:D3}" -f $nextNumber
 
-# names
+    # names
     $asset = "$type-$city-$number"
     $hostname = $asset
 
-# === OWNER ===
+    # === OWNER ===
     $owner = Read-Required "Enter owner (lastname)"
 
-# === MODEL ===
+    # === MODEL ===
     $autoModel = (Get-CimInstance Win32_ComputerSystemProduct).Name
     Write-Host "Detected model: $autoModel"
     $confirmModel = Read-Host "Correct? (Y/N)"
@@ -222,7 +229,7 @@ do {
         $model = Read-Required "Enter model manually"
     }
 
-# === SERIAL ===
+    # === SERIAL ===
     $autoSerial = (Get-CimInstance Win32_BIOS).SerialNumber
     Write-Host "Detected serial: $autoSerial"
     $confirmSerial = Read-Host "Correct? (Y/N)"
@@ -230,13 +237,13 @@ do {
     if ($confirmSerial -eq "Y") {
         $serial = $autoSerial
     } else {
-        $serial = Read-Required "Enter model manually"
+        $serial = Read-Required "Enter serial manually"
     }
 
-# === DESCRIPTION ===
+    # === DESCRIPTION ===
     $desc = "$model | $owner"
 
-# === PREVIEW ===
+    # === PREVIEW ===
     Write-Host ""
     Write-Host "=== CHECK ===" -ForegroundColor Cyan
     Write-Host "AssetID :" $asset
@@ -249,67 +256,67 @@ do {
 
     if ($confirm -ne "Y") {
         Write-Host "Cancelled"
-    return
+        return
     }
 
-# === SAVE TO REGISTRY ===
+    # === SAVE TO REGISTRY ===
     New-Item -Path $regPath -Force | Out-Null
     Set-ItemProperty -Path $regPath -Name "AssetID" -Value $asset
     Set-ItemProperty -Path $regPath -Name "Owner" -Value $owner
     Set-ItemProperty -Path $regPath -Name "Model" -Value $model
     Set-ItemProperty -Path $regPath -Name "Serial" -Value $serial
 
-# === SAVE DESCRIPTION ===
+    # === SAVE DESCRIPTION ===
     Set-ItemProperty `
-      -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" `
-      -Name "srvcomment" `
-      -Value $desc
+        -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" `
+        -Name "srvcomment" `
+        -Value $desc
 
-# ==============================
-# SAVE LOCAL (FIXED PATH)
-# ==============================
+    # ==============================
+    # SAVE LOCAL (FIXED PATH)
+    # ==============================
 
-# базовый путь Documents
-$basePath = [Environment]::GetFolderPath("MyDocuments")
+    # базовый путь Documents
+    $basePath = [Environment]::GetFolderPath("MyDocuments")
 
-# папка
-$folderPath = Join-Path $basePath "comp_registration"
+    # папка
+    $folderPath = Join-Path $basePath "comp_registration"
 
-# создать папку если нет
-if (-not (Test-Path $folderPath)) {
-    New-Item -Path $folderPath -ItemType Directory | Out-Null
-}
+    # создать папку если нет
+    if (-not (Test-Path $folderPath)) {
+        New-Item -Path $folderPath -ItemType Directory | Out-Null
+    }
 
-# имя файла
-$safeName = "$asset - $owner" -replace '[\\/:*?""<>|]', '_'
+    # имя файла
+    $safeName = "$asset - $owner" -replace '[\\/:*?""<>|]', '_'
 
-# ПОЛНЫЙ путь к файлу
-$filePath = Join-Path $folderPath "$safeName.csv"
+    # ПОЛНЫЙ путь к файлу
+    $filePath = Join-Path $folderPath "$safeName.csv"
 
-# данные
-$data = [PSCustomObject]@{
-    Date     = (Get-Date)
-    AssetID  = $asset
-    Owner    = $owner
-    Model    = $model
-    Serial   = $serial
-    City     = $city
-    Hostname = $hostname
-}
+    # данные
+    $data = [PSCustomObject]@{
+        Date     = (Get-Date)
+        AssetID  = $asset
+        Owner    = $owner
+        Model    = $model
+        Serial   = $serial
+        City     = $city
+        Hostname = $hostname
+    }
 
-# сохранение
-$data | Export-Csv -Path $filePath -NoTypeInformation -Encoding UTF8
+    # сохранение
+    $data | Export-Csv -Path $filePath -NoTypeInformation -Encoding UTF8
 
-Write-Host "Saved locally: $filePath" -ForegroundColor Green
+    Write-Host "Saved locally: $filePath" -ForegroundColor Green
 
-# открыть папку
-if (Test-Path $folderPath) {
-    Start-Process explorer.exe $folderPath
-}
+    # открыть папку
+    if (Test-Path $folderPath) {
+        Start-Process explorer.exe $folderPath
+    }
 
-#====================================
-#       GOOGLE Company Database
-#====================================
+    #====================================
+    # GOOGLE Company Database
+    #====================================
     try {
         $body = @{
             asset    = $asset
@@ -327,6 +334,14 @@ if (Test-Path $folderPath) {
     catch {
         Write-Host "Google copy NOT saved (no connection)" -ForegroundColor Yellow
     }
+
+
+    Write-Host ""
+    Write-Host "==================================" -ForegroundColor DarkGray
+    Write-Host "System changes require a reboot." -ForegroundColor Yellow
+    Write-Host "Please restart the computer." -ForegroundColor Yellow
+    Write-Host "==================================" -ForegroundColor DarkGray
+    Write-Host ""
 }
 
 # ==============================
