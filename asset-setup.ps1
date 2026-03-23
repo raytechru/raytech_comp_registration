@@ -52,9 +52,11 @@ function Test-Login {
         return [bool]$response.success
     }
     catch {
-        Write-Host "ERROR:" -ForegroundColor Red
-        Write-Host $_
-        return $false
+        Write-Host ""
+        Write-Host "Auth server unavailable. Access blocked." -ForegroundColor Red
+        Write-Host ""
+        pause
+        exit
     }
 }
 
@@ -66,8 +68,13 @@ if (-not ([Security.Principal.WindowsPrincipal] `
     [Security.Principal.WindowsBuiltinRole]::Administrator)) {
 
     Write-Host "Run as administrator!" -ForegroundColor Red
-    pause
+    exit
 }
+
+# ==============================
+# TLS FIX
+# ==============================
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 
 # ==============================
@@ -78,13 +85,8 @@ Write-Host "=== AUTHORIZATION REQUIRED ===" -ForegroundColor Cyan
 
 if (-not (Test-Login)) {
     Write-Host "Access denied" -ForegroundColor Red
-    pause
+    exit
 }
-
-# ==============================
-# TLS FIX
-# ==============================
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 
 # ==============================
