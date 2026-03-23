@@ -6,7 +6,61 @@
 # - No update / no auth
 # Stable local version
 
-# === ADMIN CHECK ===
+$regPath = "HKLM:\SOFTWARE\Company\Asset"
+$url = "https://script.google.com/macros/s/AKfycbxTi07kyNcvCLWN9TrjCVO-a0xcwC3NRhRy2RuSL0pxTOAh2o-ChuUdQvv0EZCincieQg/exec"
+$apiUrl = $url
+
+
+# ==============================
+# FUNCTION: GETTING HASH
+# ==============================
+function Get-Hash($text) {
+    if ([string]::IsNullOrWhiteSpace($text)) {
+        return ""
+    }
+
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($text)
+    $hash = $sha.ComputeHash($bytes)
+    return ($hash | ForEach-Object { $_.ToString("x2") }) -join ""
+}
+
+
+# ==============================
+# FUNCTION: TEST-LOGIN
+# ==============================
+function Test-Login {
+
+    Write-Host ""
+    $password = Read-Host "Enter password"
+    $password = $password.Trim()
+
+    $hash = Get-Hash $password
+
+    $body = @{
+        action = "verify"
+        hash   = $hash
+    } | ConvertTo-Json -Compress
+
+    try {
+        $response = Invoke-RestMethod `
+            -Uri $apiUrl `
+            -Method POST `
+            -Body $body `
+            -ContentType "application/json; charset=utf-8"
+
+        return [bool]$response.success
+    }
+    catch {
+        Write-Host "ERROR:" -ForegroundColor Red
+        Write-Host $_
+        return $false
+    }
+}
+
+# ==============================
+# ADMIN CHECK
+# ==============================
 if (-not ([Security.Principal.WindowsPrincipal] `
     [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(`
     [Security.Principal.WindowsBuiltinRole]::Administrator)) {
@@ -15,11 +69,23 @@ if (-not ([Security.Principal.WindowsPrincipal] `
     exit
 }
 
-# TLS fix
+
+# ==============================
+# LOGIN
+# ==============================
+Write-Host ""
+Write-Host "=== AUTHORIZATION REQUIRED ===" -ForegroundColor Cyan
+
+if (-not (Test-Login)) {
+    Write-Host "Access denied" -ForegroundColor Red
+    exit
+}
+
+# ==============================
+# TLS FIX
+# ==============================
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$regPath = "HKLM:\SOFTWARE\Company\Asset"
-$url = "https://script.google.com/macros/s/AKfycbxTi07kyNcvCLWN9TrjCVO-a0xcwC3NRhRy2RuSL0pxTOAh2o-ChuUdQvv0EZCincieQg/exec"
 
 # ==============================
 # FUNCTION: REQUIRED INPUT
@@ -37,6 +103,7 @@ function Read-Required($prompt) {
 
     return $value
 }
+
 
 # ==============================
 # FUNCTION: STATUS
@@ -66,12 +133,14 @@ function Show-Status {
     Write-Host ""
 }
 
+
 # ==============================
-# FUNCTION: ADD DEVICE (V1)
+# FUNCTION: ADD DEVICE
 # ==============================
 function Add-Device {
 
     Write-Host "=== PC Setup ===" -ForegroundColor Cyan
+
 
 # ==============================
 # TYPE VALIDATION
@@ -85,6 +154,7 @@ do {
 
 } until ($type -in @("NB","PC","NT"))
 
+
 # ==============================
 # CITY VALIDATION
 # ==============================
@@ -97,7 +167,10 @@ do {
 
 } until ($city -match '^[A-Z]{3}$')
 
-# === GET NUMBER FROM GOOGLE ===
+
+# ==============================
+# GET REGISTRATION NUMBER FROM
+# ==============================
     $nextNumber = $null
 
     try {
