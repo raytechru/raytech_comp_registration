@@ -272,6 +272,16 @@ function Add-Device {
         -Name "srvcomment" `
         -Value $desc
 
+    # SAVE PC NAME
+    try {
+        Rename-Computer -NewName $hostname -Force -ErrorAction Stop
+        Write-Host "Computer rename command applied: $hostname" -ForegroundColor Green
+    }
+    catch {
+        Write-Host "Rename failed!" -ForegroundColor Red
+        Write-Host $_
+    }
+
     # ==============================
     # SAVE LOCAL (FIXED PATH)
     # ==============================
@@ -340,6 +350,7 @@ function Add-Device {
     Write-Host "==================================" -ForegroundColor DarkGray
     Write-Host "System changes require a reboot." -ForegroundColor Yellow
     Write-Host "Please restart the computer." -ForegroundColor Yellow
+    Write-Host "New computer HOSTNAME: $((Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\ComputerName\ComputerName').ComputerName)" -ForegroundColor RED
     Write-Host "==================================" -ForegroundColor DarkGray
     Write-Host ""
 }
